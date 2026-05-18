@@ -1,5 +1,6 @@
 package com.microservice.order.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microservice.order.client.ProductClient;
 import com.microservice.order.dto.OrderRequest;
 import com.microservice.order.dto.OrderResponse;
@@ -26,13 +27,12 @@ public class OrderService {
 
 	private final OrderRepository orderRepository;
 	private final ProductClient productClient;
+	private final ObjectMapper objectMapper;
 
 	@Transactional(readOnly = true)
 	public List<OrderResponse> findAll() {
-		return orderRepository.findAll(Sort.by("id"))
-				.stream()
-				.map(this::toResponse)
-				.toList();
+		List<CustomerOrder> orders = orderRepository.findAll(Sort.by("id"));
+		return orders.stream().map(this::toResponse).toList();
 	}
 
 	@Transactional(readOnly = true)
@@ -122,13 +122,6 @@ public class OrderService {
 	}
 
 	private OrderResponse toResponse(CustomerOrder order) {
-		return new OrderResponse(
-				order.getId(),
-				order.getProductId(),
-				order.getProductName(),
-				order.getQuantity(),
-				order.getUnitPrice(),
-				order.getTotalAmount(),
-				order.getStatus());
+		return objectMapper.convertValue(order, OrderResponse.class);
 	}
 }

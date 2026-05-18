@@ -1,5 +1,6 @@
 package com.microservice.product.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microservice.product.dto.ProductRequest;
 import com.microservice.product.dto.ProductResponse;
 import com.microservice.product.exception.InsufficientStockException;
@@ -19,9 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductService {
 
 	private final ProductRepository productRepository;
+	private final ObjectMapper objectMapper;
 
-	public ProductService(ProductRepository productRepository) {
+	public ProductService(ProductRepository productRepository, ObjectMapper objectMapper) {
 		this.productRepository = productRepository;
+		this.objectMapper = objectMapper;
 	}
 
 	@PostConstruct
@@ -69,20 +72,18 @@ public class ProductService {
 
 	@Transactional
 	public ProductResponse create(ProductRequest request) {
-		Product product = new Product(null, request.name(), request.description(), request.price(), request.quantity());
+		Product product = objectMapper.convertValue(request, Product.class);
 
 		return toResponse(productRepository.save(product));
 	}
 
 	@Transactional
 	public ProductResponse update(Long id, ProductRequest request) {
-		Product product = findProduct(id);
-		product.setName(request.name());
-		product.setDescription(request.description());
-		product.setPrice(request.price());
-		product.setQuantity(request.quantity());
+		findProduct(id);
+		Product product = objectMapper.convertValue(request, Product.class);
+		product.setId(id);
 
-		return toResponse(product);
+		return toResponse(productRepository.save(product));
 	}
 
 	@Transactional
@@ -97,11 +98,6 @@ public class ProductService {
 	}
 
 	private ProductResponse toResponse(Product product) {
-		return new ProductResponse(
-				product.getId(),
-				product.getName(),
-				product.getDescription(),
-				product.getPrice(),
-				product.getQuantity());
+		return objectMapper.convertValue(product, ProductResponse.class);
 	}
 }
